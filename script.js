@@ -1,81 +1,53 @@
-const apiKeyOpenCage = '075c9d92a5c3493c8996975087fa0f88'; // Substitua pela sua chave da OpenCage
-let myChart; // Variável global para armazenar a instância do gráfico
+const apiKeyWeather = '84ea6db8f7c9af2bda7dc0ed9228ef70'; // Substitua pela sua chave OpenWeatherMap
+const apiKeyGeocode = '075c9d92a5c3493c8996975087fa0f88'; // Substitua pela sua chave OpenCage
 
-function getCoordinates(city, country) {
-    const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city)},${encodeURIComponent(country)}&key=${apiKeyOpenCage}`;
-
-    return fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.results.length > 0) {
-                return {
-                    latitude: data.results[0].geometry.lat,
-                    longitude: data.results[0].geometry.lng
-                };
-            } else {
-                throw new Error('Localização não encontrada');
-            }
-        });
-}
-
-function getWeatherData(latitude, longitude) {
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=temperature_2m`;
-
-    return fetch(weatherUrl)
-        .then(response => response.json())
-        .then(data => {
-            return data;
-        });
-}
-
-function displayWeatherData(weatherData) {
-    const currentWeather = weatherData.current_weather;
-    document.getElementById('weather-info').innerText = `Temperatura atual: ${currentWeather.temperature}°C, Vento: ${currentWeather.windspeed} km/h`;
-
-    const ctx = document.getElementById('weather-chart').getContext('2d');
-
-    // Se o gráfico já existir, destrua-o
-    if (myChart) {
-        myChart.destroy();
-    }
-
-    // Crie um novo gráfico
-    myChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: weatherData.hourly.time.slice(0, 24), // Primeiras 24 horas
-            datasets: [{
-                label: 'Temperatura (°C)',
-                data: weatherData.hourly.temperature_2m.slice(0, 24), // Primeiras 24 horas
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1,
-                fill: false
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-}
-
-document.getElementById('location-form').addEventListener('submit', function(event) {
-    event.preventDefault(); // Impede o envio padrão do formulário
+document.getElementById('weatherForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
     const city = document.getElementById('city').value;
+    const state = document.getElementById('state').value;
     const country = document.getElementById('country').value;
 
-    getCoordinates(city, country)
-        .then(coords => {
-            return getWeatherData(coords.latitude, coords.longitude);
-        })
-        .then(weatherData => {
-            displayWeatherData(weatherData);
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao buscar dados: ' + error.message);
-        });
+    try {
+        const geocodeResponse = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${city},${state},${country}&key=${apiKeyGeocode}`);
+        const geocodeData = await geocodeResponse.json();
+        const { lat, lng } = geocodeData.results[0].geometry;
+
+        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKeyWeather}&units=metric&lang=pt_br`);
+        const weatherData = await weatherResponse.json();
+
+        displayWeather(weatherData);
+    } catch (error) {
+        console.error('Erro ao buscar dados:', error);
+        document.getElementById('weatherResult').innerHTML = '<p>Erro ao buscar dados. Verifique a cidade, estado e país.</p>';
+    }
 });
+
+function displayWeather(data) {
+    const weatherResult = document.getElementById('weatherResult');
+    const { main, weather } = data;
+    const icon = getWeatherIcon(weather[0].main);
+
+    weatherResult.innerHTML = `
+        <h2>${data.name}, ${data.sys.country}</h2>
+        <p>Temperatura: ${main.temp}°C</p>
+        <p>Condições: ${weather[0].description}</p>
+        <img src="${icon}" alt="${weather[0].description}">
+    `;
+}
+
+function getWeatherIcon(condition) {
+    switch (condition) {
+        case 'Clear':
+            return 'https://img.icons8.com/ios-filled/50/000000/sun.png'; // Ícone de sol
+        case 'Rain':
+            return 'https://img.icons8.com/ios-filled/50/000000/rain.png'; // Ícone de chuva
+        case 'Clouds':
+            return 'https://img.icons8.com/ios-filled/50/000000/cloud.png'; // Ícone de nuvens
+        case 'Snow':
+            return 'https://img.icons8.com/ios-filled/50/000000/snow.png'; // Ícone de neve
+        case 'Thunderstorm':
+            return 'https://img.icons8.com/ios-filled/50/000000/thunderstorm.png'; // Ícone de tempestade
+        default:
+            return 'https://img.icons8.com/ios-filled/50/000000/weather.png'; // Ícone padrão
+    }
+}
