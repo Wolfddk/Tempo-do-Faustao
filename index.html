@@ -1,0 +1,23 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="shortcut icon" href="logo.png" type="image/x-icon">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previsão do Tempo</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Previsão do Tempo</h1>
+    <form id="location-form">
+        <input type="text" id="city" placeholder="Cidade" required>
+        <input type="text" id="country" placeholder="País" required>
+        <button type="submit">Atualizar Localização</button>
+    </form>
+    <div id="weather-info"></div>
+    <canvas id="weather-chart" width="400" height="200"></canvas>
+    <script src="script.js"></script>
+</body>
+</html>
